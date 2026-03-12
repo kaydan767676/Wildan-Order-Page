@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Wildan International - 喜馬拉雅粉紅岩鹽批發下單</title>
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
         
@@ -815,6 +817,11 @@
             transform: scale(1.02);
         }
         
+        .submit-order-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
         /* WhatsApp Button */
         .whatsapp-btn {
             width: 100%;
@@ -1041,6 +1048,20 @@
         
         .phone-input.show {
             display: block;
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         
         /* Responsive */
@@ -1367,11 +1388,7 @@
                     </div>
                 </div>
                 
-                <form id="orderForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
-                    <!-- 隐藏字段：订单详情 -->
-                    <input type="hidden" name="order_details" id="orderDetailsInput">
-                    <input type="hidden" name="total_amount" id="totalAmountInput">
-                    
+                <form id="orderForm" onsubmit="submitOrder(event)">
                     <div class="form-row">
                         <div class="form-group">
                             <label>公司名稱 *</label>
@@ -1426,7 +1443,7 @@
                         <textarea name="notes" rows="2" placeholder="如有特別要求請在此說明..."></textarea>
                     </div>
                     
-                    <button type="submit" class="submit-order-btn">
+                    <button type="submit" class="submit-order-btn" id="submitBtn">
                         確認提交訂單 📋
                     </button>
                 </form>
@@ -1469,15 +1486,23 @@
     </footer>
 
     <script>
-        // ==================== 配置 ====================
-        // 你的 Formspree 表单 ID（需要替换）
-        const FORMSPREE_ID = 'YOUR_FORM_ID';
+        // ==================== EmailJS 配置 ====================
+        const EMAILJS_CONFIG = {
+            PUBLIC_KEY: '-9KJ0Asv3ZKmQhzd3',
+            SERVICE_ID: 'service_0bhacgu',
+            TEMPLATE_ID: 'template_ikjk4yt'
+        };
         
-        // 你的 WhatsApp Business 号码（需要替换，格式：852XXXXXXXX）
-        const BUSINESS_WHATSAPP = '852XXXXXXXX';
+        // 商家接收邮箱（你的邮箱）
+        const MERCHANT_EMAIL = 'kaydan@wildan.cc';
         
-        // 是否启用 WhatsApp 自动发送（需要配合后端，这里使用点击链接方式）
-        const ENABLE_WHATSAPP_LINK = true;
+        // WhatsApp 配置
+        const BUSINESS_WHATSAPP = '85267685617'; // 替换为你的 WhatsApp 号码
+        
+        // 初始化 EmailJS
+        (function() {
+            emailjs.init(EMAILJS_CONFIG.PUBLIC_KEY);
+        })();
 
         // Pricing configuration
         const pricingTiers = {
@@ -1497,11 +1522,6 @@
             const today = new Date();
             today.setDate(today.getDate() + 3);
             document.querySelector('input[name="delivery_date"]').min = today.toISOString().split('T')[0];
-            
-            // 更新 Formspree 表单 action
-            if (FORMSPREE_ID !== 'YOUR_FORM_ID') {
-                document.getElementById('orderForm').action = `https://formspree.io/f/${FORMSPREE_ID}`;
-            }
         });
 
         function addToCart(tier) {
@@ -1632,10 +1652,6 @@
                 detailsText: orderDetailsText.join('\n')
             };
             
-            // 填充隐藏字段
-            document.getElementById('orderDetailsInput').value = currentOrderData.detailsText;
-            document.getElementById('totalAmountInput').value = 'HK$' + total.toLocaleString();
-            
             // Auto-select customer type if only one tier
             if (items.length === 1) {
                 document.getElementById('customerType').value = items[0][0];
@@ -1703,7 +1719,7 @@
             };
         }
 
-        function submitOrder(e) {
+        async function submitOrder(e) {
             e.preventDefault();
             
             const form = e.target;
@@ -1724,60 +1740,68 @@
             // 生成订单号
             const orderNum = 'WI-' + Date.now().toString().slice(-8);
             
-            // 准备邮件数据（添加订单号）
-            const emailData = new FormData();
-            emailData.append('order_number', orderNum);
-            emailData.append('company', data.company);
-            emailData.append('contact', data.contact);
-            emailData.append('phone', data.phone);
-            emailData.append('email', data.email);
-            emailData.append('type', data.type);
-            emailData.append('address', data.address);
-            emailData.append('quantity', data.quantity);
-            emailData.append('delivery_date', data.delivery_date || '未指定');
-            emailData.append('notes', data.notes || '無');
-            emailData.append('order_details', currentOrderData.detailsText);
-            emailData.append('total_amount', 'HK$' + currentOrderData.total.toLocaleString());
-            
             // 显示提交中
-            const submitBtn = form.querySelector('.submit-order-btn');
+            const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '提交中...';
+            submitBtn.innerHTML = '<div class="spinner"></div> 提交中...';
             submitBtn.disabled = true;
             
-            // 发送邮件（通过 Formspree）
-            fetch(form.action, {
-                method: 'POST',
-                body: emailData,
-                headers: {
-                    'Accept': 'application/json'
-                }
-            }).then(response => {
-                if (response.ok) {
-                    // 准备 WhatsApp 链接
-                    let whatsAppLinks = null;
-                    if (ENABLE_WHATSAPP_LINK && BUSINESS_WHATSAPP !== '852XXXXXXXX') {
-                        whatsAppLinks = generateWhatsAppLink(currentOrderData, data, enableWhatsApp ? whatsAppNumber : null);
-                    }
+            try {
+                // 准备 EmailJS 参数 - 发送给商家（你）
+                const templateParams = {
+                    // 邮件接收者（商家）
+                    to_email: MERCHANT_EMAIL,
+                    to_name: 'Wildan International',
                     
-                    // 显示成功页面
-                    showSuccessPage(orderNum, data, whatsAppLinks, enableWhatsApp);
+                    // 订单信息
+                    order_number: orderNum,
+                    order_time: new Date().toLocaleString('zh-HK'),
                     
-                    // 如果启用了 WhatsApp 且是手机端，尝试打开链接
-                    if (whatsAppLinks && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                        // 延迟打开 WhatsApp
-                        setTimeout(() => {
-                            window.open(whatsAppLinks.business, '_blank');
-                        }, 1000);
-                    }
-                } else {
-                    throw new Error('提交失败');
+                    // 客户信息
+                    company: data.company,
+                    contact: data.contact,
+                    phone: data.phone,
+                    email: data.email,
+                    type: data.type,
+                    address: data.address,
+                    quantity: data.quantity,
+                    delivery_date: data.delivery_date || '未指定',
+                    notes: data.notes || '無',
+                    
+                    // 订单详情
+                    order_details: currentOrderData.detailsText,
+                    total_amount: 'HK$' + currentOrderData.total.toLocaleString()
+                };
+                
+                // 发送邮件（通过 EmailJS）
+                await emailjs.send(
+                    EMAILJS_CONFIG.SERVICE_ID,
+                    EMAILJS_CONFIG.TEMPLATE_ID,
+                    templateParams
+                );
+                
+                // 准备 WhatsApp 链接
+                let whatsAppLinks = null;
+                if (BUSINESS_WHATSAPP !== '852XXXXXXXX') {
+                    whatsAppLinks = generateWhatsAppLink(currentOrderData, data, enableWhatsApp ? whatsAppNumber : null);
                 }
-            }).catch(error => {
-                showToast('提交失敗，請檢查網絡連接或稍後再試');
+                
+                // 显示成功页面
+                showSuccessPage(orderNum, data, whatsAppLinks, enableWhatsApp);
+                
+                // 如果启用了 WhatsApp 且是手机端，尝试打开链接
+                if (whatsAppLinks && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    setTimeout(() => {
+                        window.open(whatsAppLinks.business, '_blank');
+                    }, 1000);
+                }
+                
+            } catch (error) {
+                console.error('EmailJS Error:', error);
+                showToast('提交失敗：' + (error.text || '請檢查網絡連接'));
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-            });
+            }
         }
 
         function showSuccessPage(orderNum, data, whatsAppLinks, enableWhatsApp) {
@@ -1814,7 +1838,7 @@
                         <p><strong>聯絡人：</strong> ${data.contact}</p>
                         <p><strong>總金額：</strong> HK$${currentOrderData.total.toLocaleString()}</p>
                         <p style="margin-top: 10px; color: #27ae60; font-size: 13px;">
-                            ✉️ 訂單確認郵件已發送至 ${data.email}
+                            ✉️ 訂單通知郵件已發送至商家
                         </p>
                     </div>
                     <div class="success-actions">
@@ -1835,6 +1859,12 @@
             currentOrderData = null;
             document.getElementById('orderForm').reset();
             document.getElementById('whatsAppPhoneInput').classList.remove('show');
+            document.getElementById('enableWhatsApp').checked = false;
+            
+            // 重置提交按钮
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerHTML = '確認提交訂單 📋';
+            submitBtn.disabled = false;
         }
 
         function showToast(message) {
