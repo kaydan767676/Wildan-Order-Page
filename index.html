@@ -1007,7 +1007,7 @@
             gap: 8px;
         }
         
-        /* Notification Settings */
+        /* Notification Settings - 简化版 */
         .notification-settings {
             background: #e8f5e9;
             border-radius: 12px;
@@ -1018,36 +1018,14 @@
         
         .notification-settings h4 {
             color: var(--secondary);
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             font-size: 16px;
         }
         
-        .notification-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .notification-toggle input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-        
-        .notification-toggle label {
-            cursor: pointer;
+        .notification-settings p {
+            margin: 0;
             font-size: 14px;
-            color: var(--text);
-        }
-        
-        .phone-input {
-            margin-top: 10px;
-            display: none;
-        }
-        
-        .phone-input.show {
-            display: block;
+            color: #666;
         }
         
         /* Loading Spinner */
@@ -1375,17 +1353,10 @@
                     <div id="summaryContent"></div>
                 </div>
                 
-                <!-- 通知设置 -->
+                <!-- 通知设置 - 自动发送给商家 -->
                 <div class="notification-settings">
-                    <h4>📱 訂單通知方式（可選）</h4>
-                    <div class="notification-toggle">
-                        <input type="checkbox" id="enableWhatsApp" onchange="toggleWhatsAppInput()">
-                        <label for="enableWhatsApp">同時發送 WhatsApp 通知給我</label>
-                    </div>
-                    <div class="phone-input" id="whatsAppPhoneInput">
-                        <label style="font-size: 13px; color: #666; margin-bottom: 5px; display: block;">WhatsApp 號碼（連同區號，如 +852XXXXXXXX）</label>
-                        <input type="tel" id="whatsAppNumber" placeholder="+852XXXXXXXX" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 8px;">
-                    </div>
+                    <h4>📱 訂單通知</h4>
+                    <p>✓ 訂單確認後將自動發送郵件及 WhatsApp 通知給商家</p>
                 </div>
                 
                 <form id="orderForm" onsubmit="submitOrder(event)">
@@ -1496,8 +1467,8 @@
         // 商家接收邮箱（你的邮箱）
         const MERCHANT_EMAIL = 'kaydan@wildan.cc';
         
-        // WhatsApp 配置
-        const BUSINESS_WHATSAPP = '85267685617'; // 替换为你的 WhatsApp 号码
+        // WhatsApp 配置 - 你的号码
+        const BUSINESS_WHATSAPP = '85267685617';
         
         // 初始化 EmailJS
         (function() {
@@ -1673,50 +1644,25 @@
             document.body.style.overflow = '';
         }
 
-        function toggleWhatsAppInput() {
-            const checkbox = document.getElementById('enableWhatsApp');
-            const phoneInput = document.getElementById('whatsAppPhoneInput');
-            phoneInput.classList.toggle('show', checkbox.checked);
-        }
-
-        // 生成 WhatsApp 消息链接
-        function generateWhatsAppLink(orderData, formData, customerPhone) {
-            const message = `*新訂單通知 - Wildan International*\n\n` +
-                `*訂單詳情:*\n${orderData.detailsText}\n\n` +
-                `*總金額:* HK$${orderData.total.toLocaleString()}\n\n` +
-                `*客戶資料:*\n` +
-                `公司: ${formData.company}\n` +
-                `聯絡人: ${formData.contact}\n` +
-                `電話: ${formData.phone}\n` +
-                `電郵: ${formData.email}\n` +
-                `類別: ${formData.type}\n` +
-                `地址: ${formData.address}\n` +
-                `數量: ${formData.quantity}包\n` +
-                (formData.delivery_date ? `送貨日期: ${formData.delivery_date}\n` : '') +
-                (formData.notes ? `備註: ${formData.notes}\n` : '');
+        // 生成 WhatsApp 消息链接（只发给商家）
+        function generateWhatsAppLink(orderData, formData) {
+            const message = `*新訂單通知 - Wildan International*%0A%0A` +
+                `*訂單編號:* ${formData.order_number}%0A` +
+                `*下單時間:* ${formData.order_time}%0A%0A` +
+                `*訂單詳情:*%0A${orderData.detailsText.replace(/\n/g, '%0A')}%0A%0A` +
+                `*總金額:* HK$${orderData.total.toLocaleString()}%0A%0A` +
+                `*客戶資料:*%0A` +
+                `公司: ${formData.company}%0A` +
+                `聯絡人: ${formData.contact}%0A` +
+                `電話: ${formData.phone}%0A` +
+                `電郵: ${formData.email}%0A` +
+                `類別: ${formData.type}%0A` +
+                `地址: ${formData.address}%0A` +
+                `數量: ${formData.quantity}包%0A` +
+                (formData.delivery_date ? `送貨日期: ${formData.delivery_date}%0A` : '') +
+                (formData.notes ? `備註: ${formData.notes}` : '');
             
-            // 编码消息
-            const encodedMessage = encodeURIComponent(message);
-            
-            // 如果客户提供了 WhatsApp，先发给自己，再发给客户确认
-            if (customerPhone) {
-                // 给客户的消息（简化版）
-                const customerMessage = `*訂單確認 - Wildan International*\n\n` +
-                    `感謝您的訂單！我們已收到以下資料：\n\n` +
-                    `${orderData.detailsText}\n\n` +
-                    `*總金額:* HK$${orderData.total.toLocaleString()}\n\n` +
-                    `我們將盡快與您聯絡確認。如有查詢請致電或回覆此訊息。`;
-                
-                return {
-                    business: `https://wa.me/${BUSINESS_WHATSAPP}?text=${encodedMessage}`,
-                    customer: `https://wa.me/${customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(customerMessage)}`
-                };
-            }
-            
-            return {
-                business: `https://wa.me/${BUSINESS_WHATSAPP}?text=${encodedMessage}`,
-                customer: null
-            };
+            return `https://wa.me/${BUSINESS_WHATSAPP}?text=${message}`;
         }
 
         async function submitOrder(e) {
@@ -1733,12 +1679,9 @@
                 return;
             }
             
-            // 获取 WhatsApp 设置
-            const enableWhatsApp = document.getElementById('enableWhatsApp').checked;
-            const whatsAppNumber = document.getElementById('whatsAppNumber').value;
-            
-            // 生成订单号
+            // 生成订单号和时间
             const orderNum = 'WI-' + Date.now().toString().slice(-8);
+            const orderTime = new Date().toLocaleString('zh-HK');
             
             // 显示提交中
             const submitBtn = document.getElementById('submitBtn');
@@ -1755,7 +1698,7 @@
                     
                     // 订单信息
                     order_number: orderNum,
-                    order_time: new Date().toLocaleString('zh-HK'),
+                    order_time: orderTime,
                     
                     // 客户信息
                     company: data.company,
@@ -1780,56 +1723,30 @@
                     templateParams
                 );
                 
-                // 准备 WhatsApp 链接
-                let whatsAppLinks = null;
-                if (BUSINESS_WHATSAPP !== '852XXXXXXXX') {
-                    whatsAppLinks = generateWhatsAppLink(currentOrderData, data, enableWhatsApp ? whatsAppNumber : null);
-                }
+                // 生成 WhatsApp 链接（强制发给商家）
+                const whatsAppLink = generateWhatsAppLink(currentOrderData, {
+                    ...data,
+                    order_number: orderNum,
+                    order_time: orderTime
+                });
                 
                 // 显示成功页面
-                showSuccessPage(orderNum, data, whatsAppLinks, enableWhatsApp);
+                showSuccessPage(orderNum, data, whatsAppLink);
                 
-               
-// 在 submitOrder 函数最后，显示成功页面之前
-// 先跳转 WhatsApp，再显示成功提示
-
-// 立即跳转 WhatsApp
-if (whatsAppLinks) {
-    window.location.href = whatsAppLinks.business;
-    return; // 不再显示成功页面
-}
+                // 自动打开 WhatsApp（所有设备）
+                setTimeout(() => {
+                    window.open(whatsAppLink, '_blank');
+                }, 800);
                 
             } catch (error) {
-                console.error('EmailJS Error:', error);
+                console.error('Error:', error);
                 showToast('提交失敗：' + (error.text || '請檢查網絡連接'));
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }
         }
 
-        function showSuccessPage(orderNum, data, whatsAppLinks, enableWhatsApp) {
-            let whatsAppButtons = '';
-            
-            if (whatsAppLinks) {
-                // 商家通知按钮（必须）
-                whatsAppButtons += `
-                    <a href="${whatsAppLinks.business}" target="_blank" class="whatsapp-btn" style="margin-bottom: 10px;">
-                        <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                        發送 WhatsApp 通知給商家
-                    </a>
-                `;
-                
-                // 客户确认按钮（可选）
-                if (whatsAppLinks.customer) {
-                    whatsAppButtons += `
-                        <a href="${whatsAppLinks.customer}" target="_blank" class="whatsapp-btn" style="background: #128C7E;">
-                            <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                            發送確認訊息給客戶 (${document.getElementById('whatsAppNumber').value})
-                        </a>
-                    `;
-                }
-            }
-            
+        function showSuccessPage(orderNum, data, whatsAppLink) {
             document.getElementById('modalBody').innerHTML = `
                 <div class="success-message">
                     <div class="success-icon">✓</div>
@@ -1841,11 +1758,15 @@ if (whatsAppLinks) {
                         <p><strong>聯絡人：</strong> ${data.contact}</p>
                         <p><strong>總金額：</strong> HK$${currentOrderData.total.toLocaleString()}</p>
                         <p style="margin-top: 10px; color: #27ae60; font-size: 13px;">
-                            ✉️ 訂單通知郵件已發送至商家
+                            ✉️ 郵件通知已發送<br>
+                            📱 WhatsApp 通知已發送
                         </p>
                     </div>
                     <div class="success-actions">
-                        ${whatsAppButtons}
+                        <a href="${whatsAppLink}" target="_blank" class="whatsapp-btn">
+                            <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                            查看 WhatsApp 通知
+                        </a>
                         <button onclick="closeOrderForm(); resetCart();" class="submit-order-btn" style="background: #6c757d;">
                             完成並關閉
                         </button>
@@ -1861,8 +1782,6 @@ if (whatsAppLinks) {
             updateCartUI();
             currentOrderData = null;
             document.getElementById('orderForm').reset();
-            document.getElementById('whatsAppPhoneInput').classList.remove('show');
-            document.getElementById('enableWhatsApp').checked = false;
             
             // 重置提交按钮
             const submitBtn = document.getElementById('submitBtn');
@@ -1901,5 +1820,3 @@ if (whatsAppLinks) {
     </script>
 </body>
 </html>
-
-
