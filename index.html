@@ -548,8 +548,9 @@
         .cart-item-header {
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 15px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            padding-right: 0;
         }
         
         .cart-item-title {
@@ -564,9 +565,14 @@
             color: var(--primary);
             font-weight: 700;
             font-size: 18px;
-            padding-right: 40px; /* 给垃圾桶留出空间 */
-            text-align: right;
             white-space: nowrap;
+        }
+        
+        .cart-item-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 5px;
         }
         
         .cart-item-details {
@@ -582,9 +588,6 @@
         }
         
         .remove-item {
-            position: absolute;
-            top: 15px;
-            right: 15px;
             background: rgba(231, 76, 60, 0.1);
             border: none;
             color: #e74c3c;
@@ -597,13 +600,23 @@
             justify-content: center;
             border-radius: 8px;
             transition: all 0.2s;
-            z-index: 10;
+            margin-left: 10px;
+            flex-shrink: 0;
         }
         
         .remove-item:hover {
             background: #e74c3c;
             color: white;
             transform: scale(1.05);
+        }
+        
+        .cart-item-actions {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border);
         }
         
         .cart-footer {
@@ -1580,7 +1593,7 @@
                 cartItems.innerHTML = items.map(function([tier, item]) {
                     const subtotal = item.quantity * item.price;
                     totalAmount += subtotal;
-                    return '<div class="cart-item"><button class="remove-item" onclick="removeItem(\'' + tier + '\')">🗑️</button><div class="cart-item-header"><div class="cart-item-title">' + item.name + '</div><div class="cart-item-price">HK$' + subtotal.toLocaleString() + '</div></div><div class="cart-item-details">單價: HK$' + item.price + ' × ' + item.quantity + '包</div><div class="cart-item-qty"><button class="qty-btn" onclick="updateQty(\'' + tier + '\', -1)">-</button><span class="qty-value">' + item.quantity + '</span><button class="qty-btn" onclick="updateQty(\'' + tier + '\', 1)">+</button></div></div>';
+                    return '<div class="cart-item"><div class="cart-item-header"><div class="cart-item-title">' + item.name + '</div><div class="cart-item-price">HK$' + subtotal.toLocaleString() + '</div></div><div class="cart-item-details">單價: HK$' + item.price + ' × ' + item.quantity + '包</div><div class="cart-item-qty"><button class="qty-btn" onclick="updateQty(\'' + tier + '\', -1)">-</button><span class="qty-value">' + item.quantity + '</span><button class="qty-btn" onclick="updateQty(\'' + tier + '\', 1)">+</button></div><div class="cart-item-actions"><button class="remove-item" onclick="removeItem(\'' + tier + '\')" title="移除">🗑️</button></div></div>';
                 }).join('');
             }
             
